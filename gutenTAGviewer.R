@@ -46,49 +46,54 @@ createMetapeaksPlot <- function(processed, metapeaks) {
     coord_cartesian(xlim = mz_range) +
     ylab('Peak Counts')
   
-  q <- ggplotly(r, dynamicTicks = TRUE, tooltip = "all") %>%
-    rangeslider() %>%
-    layout(hovermode = "x")
+  #q <- ggplotly(r, dynamicTicks = TRUE, tooltip = "all", source = "metapeaksPlot") %>%
+  #  rangeslider() %>%
+  #  layout(hovermode = "x") %>% 
+  #  event_register(p, "plotly_click")
   
-  return(q)
+  return(r)
 }
 
 
 
-# define the UI
 ui <- fluidPage(
   plotlyOutput("metapeaksPlot"),
-  uiOutput("selectedIonImage")
+  verbatimTextOutput("clickedMarker")
 )
 
 server <- function(input, output, session) {
   output$metapeaksPlot <- renderPlotly({
-    # Convert your ggplot object to a plotly object
+    # create the ggplot
     p <- createMetapeaksPlot(test_processed, test_metapeaks)
+    # source = "metapeaksPlot" seems to be very important for linking the event_data function to this plot, enabling clickable plots
+    ggplotly(p, dynamicTicks = TRUE, tooltip = "all", source = "metapeaksPlot") %>%
+      rangeslider() %>%
+      layout(hovermode = "x")
+    })
     
-    # Customize the plotly object to add custom data attributes or identifiers if needed
-    p
-  })
-  
-  
-  output$selectedIonImage <- renderUI({
-    req(input$metapeaksPlot_click) # Require a click event to proceed
-    
-    # Extract the identifier for the clicked line, assuming you've set up custom data attributes
-    clicked_mz <- input$metapeaksPlot_click$customdata
-    
-    # Use your imaging function to get the image for the clicked m/z value
-    img_path <- getIonImage(clicked_mz) # Implement this function to return the path of the generated image
-    
-    # Return an image UI element to display
-    tags$img(src = img_path)
-  })
-  
-  # Use event handling to capture clicks on the plot
-  observeEvent(input$metapeaksPlot_click, {
-    # Handle click event, e.g., display the ion image corresponding to the clicked line
-  })
-}#
 
-# Run the Shiny App
+  output$clickedMarker <- renderText({
+    event_data <- event_data("plotly_click", source = "metapeaksPlot")
+    if (!is.null(event_data)) {
+      # extract the m/z that was clicked
+      clicked_mz <- event_data$x
+      # Find the closest metapeak value and expected m/z location to the clicked location
+      closest <- targeted_metapeaks[which.min(abs(targeted_metapeaks$expected_mz - clicked_mz)), ]
+      # Find the closest untargeted metapeak m/z value
+      closest_untargeted <- untargeted_metapeaks[which.min(abs(untargeted_metapeaks$expected_mz - clicked_mz)), ]
+      
+      # Display the name of the closest marker
+      if (nrow(closest) > 0) {
+        paste("Clicked marker name:", closest$name, " Clicked metapeak: ", closest$metapeak_mz, "Clicked m/z: ")
+      } else {
+        "No marker found close to the clicked location."
+      }
+    } else {
+      "Click on a marker to see its name."
+    }
+  })
+}
+
+# Run the app
 shinyApp(ui, server)
+
