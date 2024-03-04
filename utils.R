@@ -66,6 +66,8 @@
 }
 
 
+
+
 # function for plotting metapeaks
 .createMetapeaksPlot <- function(processed, metapeaks) {
   
@@ -85,6 +87,8 @@
   
   # get untargeted metapeak locations
   untargeted_metapeak_location <- processed$Untargeted$UntargetedCorrespondence$mz_location
+  untargeted_metapeak_location <- untargeted_metapeak_location[is.na(processed$Untargeted$UntargetedCorrespondence$marker)] # get only truly untargeted peaks
+  
   untargeted_metapeaks <- data.frame(matrix(0, nrow = length(untargeted_metapeak_location), ncol = 1))
   colnames(untargeted_metapeaks) <- c("untargeted_mz")
   untargeted_metapeaks$untargeted_mz <- untargeted_metapeak_location

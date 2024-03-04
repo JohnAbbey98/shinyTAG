@@ -44,8 +44,11 @@ server <- function(input, output, session) {
       closest_targeted <- targeted_metapeaks[which.min(abs(targeted_metapeaks$expected_mz - clicked_mz)), ]
       # Find the closest m/z value 
       closest_mz <- counts$mz[which.min(abs(counts$mz - clicked_mz))]
+      
       # find closest untargeted metapeak
-      closest_untargeted <- untargeted_metapeaks$untargeted_mz[which.min(abs(untargeted_metapeaks$untargeted_mz - clicked_mz))]
+      untargeted_mz <- untargeted_metapeaks$untargeted_mz
+      #untargeted_mz <- untargeted_mz[is.na(test_processed$Untargeted$UntargetedCorrespondence$marker)] # get only truly untargeted peaks
+      closest_untargeted <- untargeted_mz[which.min(abs(untargeted_mz - clicked_mz))]
     
       
       # Display the name of the closest marker
@@ -78,8 +81,10 @@ server <- function(input, output, session) {
       distance_targeted <- min(abs(targeted_metapeaks$expected_mz - clicked_mz))
       
       # Find the closest untargeted metapeak value and expected m/z location to the clicked location
-      closest_untargeted <- which.min(abs(untargeted_metapeaks$untargeted_mz - clicked_mz))
-      distance_untargeted <- min(abs(untargeted_metapeaks$untargeted_mz - clicked_mz))
+      untargeted_mz <- untargeted_metapeaks$untargeted_mz
+      #untargeted_mz <- untargeted_mz[is.na(test_processed$Untargeted$UntargetedCorrespondence$marker)] # get only truly untargeted peaks
+      closest_untargeted <- which.min(abs(untargeted_mz - clicked_mz))
+      distance_untargeted <- min(abs(untargeted_mz - clicked_mz))
 
       
       # if targeted is closer or equal to untargeted, plot targeted
