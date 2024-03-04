@@ -9,18 +9,21 @@
   return(Matrix_image)
 }
 
-.imageChannel <- function(x, coords = NA, channel_number = 1, quantile_lim = 0.99, interpolate = FALSE, axes = FALSE, colna = "black", save_path = NULL) {
+# function for imaging channels
+.imageChannel <- function(x, coords = NA, channel_number = 1, method = "targeted", quantile_lim = 0.99, interpolate = FALSE, axes = FALSE, colna = "black") {
   
-  # if input is just a matrix or dataframe (eg. if PCA/NMF) do nothing
-  if(is.data.frame(x) | is.matrix(x)){
-    df <- x
-    coords <- coords
-    # otherwise treat as list
-  }else{
+  # adjust input dataframe according to whether targeted or untargeted
+  if (method == "targeted"){
     df <- x$IntensityDF
     coords <- x$SpatialCoords
+  } else if(method == "untargeted"){
+    df <- x$Untargeted$UntargetedIntensity
+    coords <- x$SpatialCoords
+  } else{
+    stop("Method must be either 'targeted' or 'untargeted'.")
   }
-  
+
+  # create matrix image
   matrix_image <- matrix(NA, ncol = max(coords$y), nrow = max(coords$x))
   x <- df[, channel_number]
   x_max <- quantile(x, probs = quantile_lim, na.rm = TRUE)
@@ -29,8 +32,14 @@
   matrix_image <- imager::as.cimg(matrix_image - min(matrix_image, na.rm = TRUE))
   matrix_image <- imager::add.color(matrix_image, simple = TRUE)
   
-  R(matrix_image) <- 0
-  B(matrix_image) <- 0
+  # adjust colours according to whether targeted or untargeted image
+  if (method == "targeted"){
+    R(matrix_image) <- 0
+    B(matrix_image) <- 0
+  }else if (method == "untargeted"){
+    B(matrix_image) <- 0
+  }
+
   if(colna == "black"){
     bg <- 1
   }
@@ -38,50 +47,21 @@
     bg <- 0
   }
   
-  img <- plot(matrix_image, main = colnames(df)[channel_number],
+  # adjust title according to whether targeted or untargeted image
+  if (method == "targeted"){
+    title <- colnames(df)[channel_number]
+  } else if(method == "untargeted"){
+    title <- "Untargeted peak"
+  } 
+  
+  # plot the image
+  img <- plot(matrix_image, main = title,
        interpolate = interpolate,
        xlim = c(1, max(coords$x)), ylim = c(max(coords$y), 1),
        axes = axes,
        col.na = rgb(0, 0, 0, bg)) # black background for NA
   
   return(img)
-  
-}
-
-
-# asCytoImageList function
-.asCytoImageList <- function(x, name = "test"){
-  
-  dataframe <- x$IntensityDF
-  coords <- x$SpatialCoords
-  
-  matrix_list <- lapply(colnames(dataframe), .curateMatrix, coords = coords, dataframe = dataframe)
-  # Create multidimensional array
-  my_array <- do.call(abind, list(matrix_list, along = 3))
-  # Create multichannel image from array
-  my_image <- Image(my_array)
-  # Create CytoImageList object from image
-  my_image <- CytoImageList(my_image)
-  # Assign image and channel names
-  names(my_image) <- name
-  cytomapper::channelNames(my_image) <- colnames(dataframe)
-  
-  return(my_image)
-  
-}
-
-# function for plotting image using plotPixels function from cytomapper
-.imagePixels <- function(x, channel = "CK818") {
-  
-  print(channel)
-  my_cil <- .asCytoImageList(x)
-  plotPixels(my_cil, colour_by = channel, 
-             image_title = NULL,
-             legend = list(colour_by.title.font = 0.2),
-             scale_bar = list(length = 100, 
-                              cex = 2, 
-                              lwidth = 7,
-                              position = "bottomleft"))
   
 }
 
