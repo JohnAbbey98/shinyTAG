@@ -1,0 +1,119 @@
+---
+title: "Getting Started with shinyTAG"
+author:
+  - name: John Abbey
+    affiliation: University of Zurich
+date: "`r Sys.Date()`"
+abstract: >
+  shinyTAG provides an interactive Shiny web application for visualising
+  MALDI Mass Spectrometry Imaging (MALDI-MSI) data processed by the gutenTAG
+  package. This vignette describes how to launch the application, load data,
+  and navigate the three main panels: the ion image viewer, the interactive
+  spectrum panel, and the quality control dashboard.
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+vignette: >
+  %\VignetteIndexEntry{Getting Started with shinyTAG}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, comment = "#>")
+```
+
+# Installation
+
+Install shinyTAG from GitHub during development, or from Bioconductor once
+available:
+
+```{r install, eval=FALSE}
+# Development version
+devtools::install_github("JohnAbbey98/shinyTAG")
+```
+
+# Quick Start
+
+Launch the application with a single call:
+
+```{r launch, eval=FALSE}
+library(shinyTAG)
+runShinyTAG()
+```
+
+This opens the shinyTAG interface in your default browser.
+
+# User Interface Overview
+
+The interface consists of three main areas:
+
+## Data Import Sidebar
+
+Located on the left, the sidebar accepts two inputs:
+
+- **Load .imzML file** — the raw or pre-processed MALDI-MSI dataset.
+- **Load panel .csv** — the target mass panel, as loaded by
+  `gutenTAG::readPanel()`. This CSV must contain at minimum `Name` and
+  `FeatureMass` columns.
+
+After selecting both files, click **Process** to run the full gutenTAG
+pipeline: `readMSIData` → `preProcess` → `peakDetection` →
+`generateMetapeaks` → `assignMetapeaks`. A status message confirms when
+processing is complete.
+
+> **Note on large files:** Processing files upwards of 10 GB may take several
+> minutes. The status message will update once the pipeline finishes.
+
+## Ion Image Panel
+
+The top card displays a single-channel spatial ion image rendered by
+`gutenTAG::imageChannel()`. Use the **Colour palette** dropdown to switch
+between viridis colour scales (viridis, magma, plasma, inferno, cividis).
+
+The displayed channel updates automatically when you click on a metapeak in
+the spectrum panel below.
+
+## Spectrum Panel
+
+The interactive spectrum shows the peak count histogram, smoothed counts,
+metapeak boundaries, panel feature masses, and seed m/z values — equivalent
+to `gutenTAG::plotMetapeaks(interactive = TRUE)`.
+
+**Click anywhere within a metapeak boundary** (red shaded region) to select
+that channel. The ion image above will update immediately.
+
+## Quality Control Dashboard
+
+The QC card contains six tabs, each showing a static plot from gutenTAG:
+
+| Tab | Function |
+|-----|----------|
+| Intensity Distribution | `plotIntensityDistribution()` |
+| Mean-Variance | `plotMeanVariance()` |
+| Geary's C | `plotGearysC()` |
+| SNR | `plotSNR()` |
+| QC Overview | `plotQCOverview()` |
+| TIC Spatial | `plotTICSpatial()` |
+
+Tabs are rendered on demand; only the active tab's plot is computed.
+
+# Example Data
+
+gutenTAG ships with a small example dataset that can be used to test the
+application:
+
+```{r example-paths, eval=FALSE}
+imzml_path <- system.file("extdata/Example_data.imzML", package = "gutenTAG")
+panel_path  <- system.file("extdata/ref_list.csv",       package = "gutenTAG")
+```
+
+These paths can be entered directly into the file upload inputs (or used
+programmatically in tests).
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```

@@ -1,0 +1,31 @@
+Package: shinyTAG
+Type: Package
+Title: Interactive Shiny Viewer for gutenTAG MALDI-MSI Data
+Version: 0.99.0
+Authors@R: c(
+    person("John", "Abbey", email = "john.abbey@uzh.ch", role = c("aut", "cre"))
+  )
+Description: shinyTAG provides an interactive Shiny web application for
+    visualising the output of the gutenTAG package. Users can load MALDI-MSI
+    data, inspect metapeak segmentation on an interactive spectrum panel,
+    select single-channel ion images by clicking on metapeak regions, and
+    examine quality control statistics through a tabbed QC dashboard.
+Depends:
+    R (>= 4.4)
+Imports:
+    shiny (>= 1.8.0),
+    bslib (>= 0.7.0),
+    plotly (>= 4.10.0),
+    ggplot2,
+    gutenTAG
+Suggests:
+    BiocStyle,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.3
+biocViews: ImagingMassSpectrometry, Spatial, Visualization, ShinyApps
+VignetteBuilder: knitr
+Config/testthat/edition: 3
