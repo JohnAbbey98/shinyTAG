@@ -90,6 +90,8 @@ mod_importServer <- function(id) {
         peaks <- gutenTAG::peakDetection(pre)
         meta  <- gutenTAG::generateMetapeaks(peaks)
         proc  <- gutenTAG::assignMetapeaks(meta, pre, panel)
+        proc  <- gutenTAG::computeGearysC(proc, update_correspondence = TRUE)
+        proc  <- gutenTAG::computeSNR(proc, update_correspondence = TRUE)
 
         results(list(processed = proc, metapeaks = meta, panel = panel))
 

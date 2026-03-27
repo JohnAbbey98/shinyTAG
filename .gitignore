@@ -5,3 +5,5 @@
 *.Rproj
 .opencode/node_modules/
 .opencode/agents/
+todo.md
+completed.md

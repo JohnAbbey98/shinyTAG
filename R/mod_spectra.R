@@ -17,7 +17,7 @@
 #' }
 mod_spectraUI <- function(id) {
   ns <- shiny::NS(id)
-  plotly::plotlyOutput(ns("spectrum"), height = "250px")
+  plotly::plotlyOutput(ns("spectrum"), height = "400px")
 }
 
 #' Spectrum Viewer Module Server

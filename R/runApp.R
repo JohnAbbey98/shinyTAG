@@ -23,24 +23,30 @@ runShinyTAG <- function(...) {
 # ── Internal UI ───────────────────────────────────────────────────────────────
 
 .shinytag_ui <- function() {
-  bslib::page_sidebar(
-    title  = "shinyTAG",
-    theme  = bslib::bs_theme(version = 5, bootswatch = "flatly"),
-    sidebar = bslib::sidebar(
-      title = "Data Import",
-      mod_importUI("import")
-    ),
-    bslib::card(
-      bslib::card_header("Ion Image"),
-      mod_imageUI("image")
-    ),
-    bslib::card(
-      bslib::card_header("Spectrum"),
-      mod_spectraUI("spectra")
-    ),
-    bslib::card(
-      bslib::card_header("Quality Control"),
-      mod_qcUI("qc")
+  bslib::page_fluid(
+    title = "shinyTAG",
+    theme = bslib::bs_theme(version = 5, bootswatch = "flatly"),
+    shiny::fluidRow(
+      shiny::column(3,
+        bslib::card(
+          bslib::card_header("Data Import"),
+          mod_importUI("import")
+        ),
+        bslib::card(
+          bslib::card_header("Quality Control"),
+          mod_qcUI("qc")
+        )
+      ),
+      shiny::column(9,
+        bslib::card(
+          bslib::card_header("Ion Image"),
+          mod_imageUI("image")
+        ),
+        bslib::card(
+          bslib::card_header("Spectrum"),
+          mod_spectraUI("spectra")
+        )
+      )
     )
   )
 }
