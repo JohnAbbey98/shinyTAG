@@ -62,23 +62,24 @@ mod_spectraServer <- function(id, data) {
         panel       = d$panel,
         interactive = TRUE
       )
-      # Attach a raw DOM click handler to the plot area so that clicks on
-      # rectangles, lines, and empty space all send the m/z coordinate.
-      # plotly's built-in plotly_click only fires on trace data points.
+      # Attach click handler to the outer plotly div. Computes the m/z from
+      # clientX, the element bounding-rect, and the left margin so the
+      # mapping stays correct after zoom / relayout. Clicks outside the
+      # plot area (legend, axes) are ignored.
       p %>% htmlwidgets::onRender(sprintf("
         function(el) {
-          el.on('plotly_afterplot', function() {
-            var drag = el.querySelector('.nsewdrag');
-            if (!drag || drag.dataset.clickBound) return;
-            drag.dataset.clickBound = 'true';
-            drag.style.cursor = 'crosshair';
-            drag.addEventListener('click', function(evt) {
-              var xaxis = el._fullLayout.xaxis;
-              var xData = xaxis.p2d(evt.offsetX);
-              Shiny.setInputValue('%s',
-                {x: xData, nonce: Math.random()},
-                {priority: 'event'});
-            });
+          el.addEventListener('click', function(evt) {
+            var layout = el._fullLayout;
+            if (!layout || !layout.xaxis) return;
+            var bb     = el.getBoundingClientRect();
+            var xPx    = evt.clientX - bb.left - layout.margin.l;
+            var yPx    = evt.clientY - bb.top  - layout.margin.t;
+            if (xPx < 0 || xPx > layout.xaxis._length) return;
+            if (yPx < 0 || yPx > layout.yaxis._length) return;
+            var xData  = layout.xaxis.p2d(xPx);
+            Shiny.setInputValue('%s',
+              {x: xData, nonce: Math.random()},
+              {priority: 'event'});
           });
         }
       ", session$ns("clicked_mz")))
