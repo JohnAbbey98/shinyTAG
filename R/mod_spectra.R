@@ -52,18 +52,21 @@ mod_spectraServer <- function(id, data) {
     output$spectrum <- plotly::renderPlotly({
       shiny::req(data())
       d <- data()
-      gutenTAG::plotMetapeaks(
+      p <- gutenTAG::plotMetapeaks(
         x           = d$processed,
         metapeaks   = d$metapeaks,
         panel       = d$panel,
         interactive = TRUE
       )
+      p %>% plotly::event_register("plotly_click")
     })
 
     clicked <- shiny::reactiveVal(NULL)
 
     shiny::observe({
-      click <- plotly::event_data("plotly_click", source = "A")
+      # priority = "event" reads from root session, needed inside modules
+      click <- plotly::event_data("plotly_click", source = "A",
+                                  priority = "event")
       shiny::req(click, data())
 
       clicked_mz <- click$x
@@ -71,9 +74,14 @@ mod_spectraServer <- function(id, data) {
       limits   <- d$metapeaks$metapeaks$limits
       peak_max <- d$metapeaks$metapeaks$max
 
+      # check if click falls inside a metapeak boundary
       in_range <- clicked_mz >= limits[, 1] & clicked_mz <= limits[, 2]
       hit_idx  <- which(in_range)
-      if (length(hit_idx) == 0) return()
+
+      # fallback: snap to nearest metapeak centre
+      if (length(hit_idx) == 0) {
+        hit_idx <- which.min(abs(peak_max - clicked_mz))
+      }
 
       hit_mz   <- peak_max[hit_idx[1]]
       all_corr <- d$processed$AllMetapeaks$AllMetapeaksCorrespondence
