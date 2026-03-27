@@ -1,8 +1,10 @@
 #' Data Import Module UI
 #'
 #' @description
-#'   Sidebar UI for loading a MALDI-MSI \code{.imzML} file and a panel
-#'   \code{.csv} file, then running the full gutenTAG processing pipeline.
+#'   Sidebar UI for loading a MALDI-MSI dataset and a panel \code{.csv} file,
+#'   then running the full gutenTAG processing pipeline. The imzML upload
+#'   accepts both the \code{.imzML} metadata file and its paired \code{.ibd}
+#'   binary file simultaneously (select both in the file chooser).
 #'
 #' @param id Module namespace ID.
 #'
@@ -18,8 +20,12 @@
 mod_importUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
-    shiny::fileInput(ns("imzml"), "Load .imzML file", accept = ".imzML"),
-    shiny::fileInput(ns("panel"), "Load panel .csv",  accept = ".csv"),
+    shiny::fileInput(
+      ns("imzml"), "Load .imzML + .ibd files",
+      accept   = c(".imzML", ".ibd"),
+      multiple = TRUE
+    ),
+    shiny::fileInput(ns("panel"), "Load panel .csv", accept = ".csv"),
     shiny::actionButton(ns("run"), "Process", class = "btn-primary w-100"),
     shiny::uiOutput(ns("status"))
   )
@@ -30,7 +36,9 @@ mod_importUI <- function(id) {
 #' @description
 #'   Runs the gutenTAG processing pipeline (read, preProcess, peakDetection,
 #'   generateMetapeaks, assignMetapeaks) when the user clicks Process and
-#'   returns a reactive list of results.
+#'   returns a reactive list of results. Both \code{.imzML} and \code{.ibd}
+#'   files are staged in a shared temp directory before reading so that
+#'   \code{Cardinal::readMSIData} can locate the binary data file.
 #'
 #' @param id Module namespace ID.
 #'
@@ -63,7 +71,22 @@ mod_importServer <- function(id) {
 
       tryCatch({
         panel <- gutenTAG::readPanel(input$panel$datapath)
-        raw   <- Cardinal::readMSIData(input$imzml$datapath)
+
+        # imzML and ibd must share a directory with matching basenames.
+        # Shiny scatters uploaded files into separate temp paths, so copy
+        # both into one directory under their original names first.
+        msi_dir <- tempfile("shinytag_msi")
+        dir.create(msi_dir)
+        for (i in seq_len(nrow(input$imzml))) {
+          file.copy(input$imzml$datapath[i],
+                    file.path(msi_dir, input$imzml$name[i]))
+        }
+        imzml_path <- file.path(
+          msi_dir,
+          input$imzml$name[grepl("\\.imzML$", input$imzml$name, ignore.case = TRUE)]
+        )
+
+        raw   <- Cardinal::readMSIData(imzml_path)
         pre   <- gutenTAG::preProcess(raw)
         peaks <- gutenTAG::peakDetection(pre)
         meta  <- gutenTAG::generateMetapeaks(peaks)

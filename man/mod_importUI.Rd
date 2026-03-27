@@ -13,8 +13,10 @@ mod_importUI(id)
 A \code{\link[shiny]{tagList}} of UI elements.
 }
 \description{
-Sidebar UI for loading a MALDI-MSI \code{.imzML} file and a panel
-  \code{.csv} file, then running the full gutenTAG processing pipeline.
+Sidebar UI for loading a MALDI-MSI dataset and a panel \code{.csv} file,
+  then running the full gutenTAG processing pipeline. The imzML upload
+  accepts both the \code{.imzML} metadata file and its paired \code{.ibd}
+  binary file simultaneously (select both in the file chooser).
 }
 \examples{
 if (interactive()) {

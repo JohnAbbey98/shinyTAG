@@ -18,7 +18,9 @@ A \code{\link[shiny]{reactive}} returning a named list with elements
 \description{
 Runs the gutenTAG processing pipeline (read, preProcess, peakDetection,
   generateMetapeaks, assignMetapeaks) when the user clicks Process and
-  returns a reactive list of results.
+  returns a reactive list of results. Both \code{.imzML} and \code{.ibd}
+  files are staged in a shared temp directory before reading so that
+  \code{Cardinal::readMSIData} can locate the binary data file.
 }
 \examples{
 if (interactive()) {
