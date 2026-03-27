@@ -25,6 +25,8 @@ mod_spectraUI <- function(id) {
 #' @description
 #'   Renders the interactive metapeak spectrum and returns a reactive
 #'   character giving the channel name of the metapeak the user last clicked.
+#'   A raw JavaScript click handler is attached to the plot area so that
+#'   clicks anywhere — including on filled metapeak rectangles — are captured.
 #'   Returns the marker name for targeted metapeaks and the \code{"<mz> m/z"}
 #'   label for untargeted ones.
 #'
@@ -34,6 +36,8 @@ mod_spectraUI <- function(id) {
 #'
 #' @return A \code{\link[shiny]{reactive}} returning a character scalar or
 #'   \code{NULL} when no click has occurred.
+#'
+#' @importFrom htmlwidgets onRender
 #'
 #' @export
 #'
@@ -58,18 +62,34 @@ mod_spectraServer <- function(id, data) {
         panel       = d$panel,
         interactive = TRUE
       )
-      p %>% plotly::event_register("plotly_click")
+      # Attach a raw DOM click handler to the plot area so that clicks on
+      # rectangles, lines, and empty space all send the m/z coordinate.
+      # plotly's built-in plotly_click only fires on trace data points.
+      p %>% htmlwidgets::onRender(sprintf("
+        function(el) {
+          el.on('plotly_afterplot', function() {
+            var drag = el.querySelector('.nsewdrag');
+            if (!drag || drag.dataset.clickBound) return;
+            drag.dataset.clickBound = 'true';
+            drag.style.cursor = 'crosshair';
+            drag.addEventListener('click', function(evt) {
+              var xaxis = el._fullLayout.xaxis;
+              var xData = xaxis.p2d(evt.offsetX);
+              Shiny.setInputValue('%s',
+                {x: xData, nonce: Math.random()},
+                {priority: 'event'});
+            });
+          });
+        }
+      ", session$ns("clicked_mz")))
     })
 
     clicked <- shiny::reactiveVal(NULL)
 
-    shiny::observe({
-      # priority = "event" reads from root session, needed inside modules
-      click <- plotly::event_data("plotly_click", source = "A",
-                                  priority = "event")
-      shiny::req(click, data())
+    shiny::observeEvent(input$clicked_mz, {
+      shiny::req(data())
 
-      clicked_mz <- click$x
+      clicked_mz <- input$clicked_mz$x
       d        <- data()
       limits   <- d$metapeaks$metapeaks$limits
       peak_max <- d$metapeaks$metapeaks$max

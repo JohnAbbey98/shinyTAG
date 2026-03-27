@@ -16,6 +16,7 @@ Imports:
     shiny (>= 1.8.0),
     bslib (>= 0.7.0),
     plotly (>= 4.10.0),
+    htmlwidgets,
     ggplot2,
     gutenTAG
 Suggests:

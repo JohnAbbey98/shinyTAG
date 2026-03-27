@@ -19,6 +19,8 @@ A \code{\link[shiny]{reactive}} returning a character scalar or
 \description{
 Renders the interactive metapeak spectrum and returns a reactive
   character giving the channel name of the metapeak the user last clicked.
+  A raw JavaScript click handler is attached to the plot area so that
+  clicks anywhere — including on filled metapeak rectangles — are captured.
   Returns the marker name for targeted metapeaks and the \code{"<mz> m/z"}
   label for untargeted ones.
 }
