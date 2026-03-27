@@ -15,8 +15,8 @@ A \code{\link[shiny]{tagList}} of UI elements.
 \description{
 Sidebar UI for loading a MALDI-MSI dataset and a panel \code{.csv} file,
   then running the full gutenTAG processing pipeline. Paths are entered as
-  text so that Cardinal reads directly from disk — this avoids copying large
-  files and ensures the \code{.ibd} companion file is found automatically.
+  text so that Cardinal reads directly from disk. Accordion panels expose
+  tunable parameters for each pipeline step.
 }
 \examples{
 if (interactive()) {

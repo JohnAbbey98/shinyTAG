@@ -3,8 +3,8 @@
 #' @description
 #'   Sidebar UI for loading a MALDI-MSI dataset and a panel \code{.csv} file,
 #'   then running the full gutenTAG processing pipeline. Paths are entered as
-#'   text so that Cardinal reads directly from disk — this avoids copying large
-#'   files and ensures the \code{.ibd} companion file is found automatically.
+#'   text so that Cardinal reads directly from disk. Accordion panels expose
+#'   tunable parameters for each pipeline step.
 #'
 #' @param id Module namespace ID.
 #'
@@ -24,7 +24,36 @@ mod_importUI <- function(id) {
                      placeholder = "/path/to/data.imzML"),
     shiny::textInput(ns("panel"), "Path to panel .csv",
                      placeholder = "/path/to/panel.csv"),
-    shiny::actionButton(ns("run"), "Process", class = "btn-primary w-100"),
+
+    bslib::accordion(
+      open = FALSE,
+
+      bslib::accordion_panel(
+        "Peak Detection",
+        shiny::numericInput(ns("pd_snr"), "SNR", value = 3, min = 0, step = 0.5),
+        shiny::numericInput(ns("pd_win"), "Window size", value = 50, min = 1, step = 1)
+      ),
+
+      bslib::accordion_panel(
+        "Generate Metapeaks",
+        shiny::numericInput(ns("gm_threshold"), "Threshold", value = 0.01,
+                            min = 0, max = 1, step = 0.005),
+        shiny::numericInput(ns("gm_smooth"), "Hist smooth factor",
+                            value = 1, min = 0.1, step = 0.1),
+        shiny::numericInput(ns("gm_sparsity"), "Sparsity", value = 3,
+                            min = 0, step = 0.5),
+        shiny::numericInput(ns("gm_fixed_limits"), "Fixed limits (empty = auto)",
+                            value = NA, min = 0, step = 0.1)
+      ),
+
+      bslib::accordion_panel(
+        "Assign Metapeaks",
+        shiny::numericInput(ns("am_mz_threshold"), "m/z threshold", value = 1,
+                            min = 0, step = 0.1)
+      )
+    ),
+
+    shiny::actionButton(ns("run"), "Process", class = "btn-primary w-100 mt-2"),
     shiny::uiOutput(ns("status"))
   )
 }
@@ -32,17 +61,14 @@ mod_importUI <- function(id) {
 #' Data Import Module Server
 #'
 #' @description
-#'   Runs the gutenTAG processing pipeline (read, preProcess, peakDetection,
-#'   generateMetapeaks, assignMetapeaks) when the user clicks Process and
-#'   returns a reactive list of results. Files are read directly from the
-#'   supplied paths so that Cardinal can locate the paired \code{.ibd} file.
+#'   Runs the gutenTAG processing pipeline using the parameters set in the UI
+#'   and returns a reactive list of results.
 #'
 #' @param id Module namespace ID.
 #'
 #' @return A \code{\link[shiny]{reactive}} returning a named list with elements
-#'   \code{processed} (output of \code{assignMetapeaks}), \code{metapeaks}
-#'   (output of \code{generateMetapeaks}), and \code{panel} (the loaded panel
-#'   data frame), or \code{NULL} before data are loaded.
+#'   \code{processed}, \code{metapeaks}, and \code{panel}, or \code{NULL}
+#'   before data are loaded.
 #'
 #' @export
 #'
@@ -83,13 +109,28 @@ mod_importServer <- function(id) {
                       class = "text-warning small mt-2")
       )
 
+      # resolve fixed.limits: NA → NULL
+      fixed_lim <- input$gm_fixed_limits
+      if (is.na(fixed_lim)) fixed_lim <- NULL
+
       tryCatch({
         panel <- gutenTAG::readPanel(panel_path)
         raw   <- Cardinal::readMSIData(imzml_path)
         pre   <- gutenTAG::preProcess(raw)
-        peaks <- gutenTAG::peakDetection(pre)
-        meta  <- gutenTAG::generateMetapeaks(peaks)
-        proc  <- gutenTAG::assignMetapeaks(meta, pre, panel)
+
+        peaks <- gutenTAG::peakDetection(pre,
+                   snr = input$pd_snr,
+                   win = input$pd_win)
+
+        meta  <- gutenTAG::generateMetapeaks(peaks,
+                   threshold         = input$gm_threshold,
+                   hist_smooth_factor = input$gm_smooth,
+                   sparsity          = input$gm_sparsity,
+                   fixed.limits      = fixed_lim)
+
+        proc  <- gutenTAG::assignMetapeaks(meta, pre, panel,
+                   mz_threshold = input$am_mz_threshold)
+
         proc  <- gutenTAG::computeGearysC(proc, update_correspondence = TRUE)
         proc  <- gutenTAG::computeSNR(proc, update_correspondence = TRUE)
 

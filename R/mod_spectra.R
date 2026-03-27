@@ -94,14 +94,10 @@ mod_spectraServer <- function(id, data) {
       limits   <- d$metapeaks$metapeaks$limits
       peak_max <- d$metapeaks$metapeaks$max
 
-      # check if click falls inside a metapeak boundary
+      # only act if click falls inside a metapeak boundary
       in_range <- clicked_mz >= limits[, 1] & clicked_mz <= limits[, 2]
       hit_idx  <- which(in_range)
-
-      # fallback: snap to nearest metapeak centre
-      if (length(hit_idx) == 0) {
-        hit_idx <- which.min(abs(peak_max - clicked_mz))
-      }
+      if (length(hit_idx) == 0) return()
 
       hit_mz   <- peak_max[hit_idx[1]]
       all_corr <- d$processed$AllMetapeaks$AllMetapeaksCorrespondence

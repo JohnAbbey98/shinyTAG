@@ -11,15 +11,12 @@ mod_importServer(id)
 }
 \value{
 A \code{\link[shiny]{reactive}} returning a named list with elements
-  \code{processed} (output of \code{assignMetapeaks}), \code{metapeaks}
-  (output of \code{generateMetapeaks}), and \code{panel} (the loaded panel
-  data frame), or \code{NULL} before data are loaded.
+  \code{processed}, \code{metapeaks}, and \code{panel}, or \code{NULL}
+  before data are loaded.
 }
 \description{
-Runs the gutenTAG processing pipeline (read, preProcess, peakDetection,
-  generateMetapeaks, assignMetapeaks) when the user clicks Process and
-  returns a reactive list of results. Files are read directly from the
-  supplied paths so that Cardinal can locate the paired \code{.ibd} file.
+Runs the gutenTAG processing pipeline using the parameters set in the UI
+  and returns a reactive list of results.
 }
 \examples{
 if (interactive()) {
