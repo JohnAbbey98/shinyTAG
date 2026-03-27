@@ -4,7 +4,7 @@
 \alias{mod_imageServer}
 \title{Image Viewer Module Server}
 \usage{
-mod_imageServer(id, data, channel)
+mod_imageServer(id, data, clicked_channel)
 }
 \arguments{
 \item{id}{Module namespace ID.}
@@ -12,15 +12,17 @@ mod_imageServer(id, data, channel)
 \item{data}{A \code{\link[shiny]{reactive}} returning the list produced by
 \code{\link{mod_importServer}}.}
 
-\item{channel}{A \code{\link[shiny]{reactive}} returning a character scalar
-— the selected marker name — produced by \code{\link{mod_spectraServer}}.}
+\item{clicked_channel}{A \code{\link[shiny]{reactive}} returning a character
+scalar (channel name) or \code{NULL}, produced by
+\code{\link{mod_spectraServer}}.}
 }
 \value{
 Invisibly \code{NULL}; called for its side-effect of rendering.
 }
 \description{
-Renders the ion image for the channel selected in the spectrum panel using
-  \code{\link[gutenTAG]{imageChannel}}.
+Populates the channel dropdown when data loads (targeted and untargeted
+  groups), updates it when the user clicks on the spectrum, and renders the
+  ion image via \code{\link[gutenTAG]{imageChannel}}.
 }
 \examples{
 if (interactive()) {

@@ -1,12 +1,13 @@
 #' Image Viewer Module UI
 #'
 #' @description
-#'   Displays a single-channel ion image for the currently selected metapeak,
-#'   with a colour palette selector.
+#'   Displays a single-channel ion image for the currently selected metapeak.
+#'   Channel can be chosen via a dropdown (grouped by targeted/untargeted) or
+#'   by clicking on the spectrum panel.
 #'
 #' @param id Module namespace ID.
 #'
-#' @return A \code{\link[shiny]{tagList}} containing a palette selector and a
+#' @return A \code{\link[shiny]{tagList}} containing selectors and a
 #'   \code{\link[shiny]{plotOutput}}.
 #'
 #' @export
@@ -19,11 +20,13 @@
 mod_imageUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
-    shiny::selectInput(
-      ns("palette"), label = NULL,
-      choices  = c("viridis", "magma", "plasma", "inferno", "cividis"),
-      selected = "viridis",
-      width    = "180px"
+    shiny::fluidRow(
+      shiny::column(6, shiny::selectInput(ns("channel"), "Channel", choices = NULL)),
+      shiny::column(6, shiny::selectInput(
+        ns("palette"), "Palette",
+        choices  = c("viridis", "magma", "plasma", "inferno", "cividis"),
+        selected = "viridis"
+      ))
     ),
     shiny::plotOutput(ns("image"), height = "420px")
   )
@@ -32,14 +35,16 @@ mod_imageUI <- function(id) {
 #' Image Viewer Module Server
 #'
 #' @description
-#'   Renders the ion image for the channel selected in the spectrum panel using
-#'   \code{\link[gutenTAG]{imageChannel}}.
+#'   Populates the channel dropdown when data loads (targeted and untargeted
+#'   groups), updates it when the user clicks on the spectrum, and renders the
+#'   ion image via \code{\link[gutenTAG]{imageChannel}}.
 #'
 #' @param id Module namespace ID.
 #' @param data A \code{\link[shiny]{reactive}} returning the list produced by
 #'   \code{\link{mod_importServer}}.
-#' @param channel A \code{\link[shiny]{reactive}} returning a character scalar
-#'   — the selected marker name — produced by \code{\link{mod_spectraServer}}.
+#' @param clicked_channel A \code{\link[shiny]{reactive}} returning a character
+#'   scalar (channel name) or \code{NULL}, produced by
+#'   \code{\link{mod_spectraServer}}.
 #'
 #' @return Invisibly \code{NULL}; called for its side-effect of rendering.
 #'
@@ -55,15 +60,44 @@ mod_imageUI <- function(id) {
 #'   }
 #'   shiny::shinyApp(ui, server)
 #' }
-mod_imageServer <- function(id, data, channel) {
+mod_imageServer <- function(id, data, clicked_channel) {
   shiny::moduleServer(id, function(input, output, session) {
+
+    # Populate channel dropdown when data loads
+    shiny::observeEvent(data(), {
+      d <- data()$processed
+      targeted   <- colnames(d$IntensityDF)
+      all_int    <- as.data.frame(d$AllMetapeaks$AllMetapeaksIntensity)
+      all_corr   <- d$AllMetapeaks$AllMetapeaksCorrespondence
+      untargeted <- colnames(all_int)[is.na(all_corr$marker)]
+
+      choices <- list(Targeted = targeted, Untargeted = untargeted)
+      shiny::updateSelectInput(session, "channel",
+                               choices = choices, selected = targeted[1])
+    })
+
+    # Update dropdown when spectrum is clicked
+    shiny::observeEvent(clicked_channel(), {
+      shiny::updateSelectInput(session, "channel", selected = clicked_channel())
+    })
+
+    # Render image from whichever channel the dropdown shows
     output$image <- shiny::renderPlot({
-      shiny::req(data(), channel())
-      gutenTAG::imageChannel(
-        x       = data()$processed,
-        channel = channel(),
-        palette = input$palette
-      )
+      shiny::req(data(), input$channel)
+      d        <- data()$processed
+      targeted <- colnames(d$IntensityDF)
+
+      if (input$channel %in% targeted) {
+        gutenTAG::imageChannel(
+          x = d, channel = input$channel, palette = input$palette
+        )
+      } else {
+        all_df <- as.data.frame(d$AllMetapeaks$AllMetapeaksIntensity)
+        gutenTAG::imageChannel(
+          x = all_df, coords = d$SpatialCoords,
+          channel = input$channel, palette = input$palette
+        )
+      }
     })
   })
 }

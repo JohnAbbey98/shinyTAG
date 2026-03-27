@@ -10,12 +10,13 @@ mod_imageUI(id)
 \item{id}{Module namespace ID.}
 }
 \value{
-A \code{\link[shiny]{tagList}} containing a palette selector and a
+A \code{\link[shiny]{tagList}} containing selectors and a
   \code{\link[shiny]{plotOutput}}.
 }
 \description{
-Displays a single-channel ion image for the currently selected metapeak,
-  with a colour palette selector.
+Displays a single-channel ion image for the currently selected metapeak.
+  Channel can be chosen via a dropdown (grouped by targeted/untargeted) or
+  by clicking on the spectrum panel.
 }
 \examples{
 if (interactive()) {

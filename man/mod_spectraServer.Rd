@@ -13,13 +13,14 @@ mod_spectraServer(id, data)
 \code{\link{mod_importServer}}.}
 }
 \value{
-A \code{\link[shiny]{reactive}} returning a character scalar — the
-  selected marker name.
+A \code{\link[shiny]{reactive}} returning a character scalar or
+  \code{NULL} when no click has occurred.
 }
 \description{
-Renders the interactive metapeak spectrum and returns a reactive character
-  giving the marker name of the metapeak the user last clicked. Defaults to
-  the first channel when no click has occurred.
+Renders the interactive metapeak spectrum and returns a reactive
+  character giving the channel name of the metapeak the user last clicked.
+  Returns the marker name for targeted metapeaks and the \code{"<mz> m/z"}
+  label for untargeted ones.
 }
 \examples{
 if (interactive()) {
