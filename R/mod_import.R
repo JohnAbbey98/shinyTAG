@@ -66,7 +66,9 @@ mod_importUI <- function(id) {
     shiny::conditionalPanel(
       sprintf("input['%s'] === 'rdata'", ns("mode")),
       shiny::textInput(ns("rdata"), "Path to .Rdata file",
-                       placeholder = "/path/to/processed.Rdata")
+                       placeholder = "/path/to/processed.Rdata"),
+      shiny::checkboxInput(ns("run_geary"), "Compute Geary's C", value = FALSE),
+      shiny::checkboxInput(ns("run_snr"), "Compute SNR", value = FALSE)
     ),
 
     shiny::actionButton(ns("run"), "Process", class = "btn-primary w-100 mt-2"),
@@ -105,7 +107,7 @@ mod_importServer <- function(id) {
 
     shiny::observeEvent(input$run, {
 
-      output$status  <- shiny::renderUI(NULL)
+      output$status <- shiny::renderUI(NULL)
       output$summary <- shiny::renderUI(NULL)
 
       if (input$mode == "rdata") {
@@ -140,6 +142,15 @@ mod_importServer <- function(id) {
     # expect a single list named 'results' with processed/metapeaks/panel
     res <- env[[obj[1]]]
     stopifnot(all(c("processed", "metapeaks", "panel") %in% names(res)))
+
+    if (isTRUE(input$run_geary)) {
+      res$processed <- gutenTAG::computeGearysC(res$processed,
+                                                 update_correspondence = TRUE)
+    }
+    if (isTRUE(input$run_snr)) {
+      res$processed <- gutenTAG::computeSNR(res$processed,
+                                            update_correspondence = TRUE)
+    }
 
     results(res)
     output$status <- shiny::renderUI(
@@ -198,10 +209,10 @@ mod_importServer <- function(id) {
 
       shiny::incProgress(1 / n_steps, detail = "Generating metapeaks")
       meta <- gutenTAG::generateMetapeaks(peaks,
-                threshold          = input$gm_threshold,
+                threshold = input$gm_threshold,
                 hist_smooth_factor = input$gm_smooth,
-                sparsity           = input$gm_sparsity,
-                fixed.limits       = fixed_lim)
+                sparsity = input$gm_sparsity,
+                fixed.limits = fixed_lim)
 
       shiny::incProgress(1 / n_steps, detail = "Assigning metapeaks")
       proc <- gutenTAG::assignMetapeaks(meta, pre, panel,
@@ -231,9 +242,10 @@ mod_importServer <- function(id) {
 # ── Internal: dataset summary ─────────────────────────────────────────────────
 
 .render_summary <- function(output, res) {
-  n_pixels  <- nrow(res$processed$IntensityDF)
+  n_pixels <- nrow(res$processed$IntensityDF)
   n_markers <- ncol(res$processed$IntensityDF)
-  mz_range  <- range(res$processed$CorrespondenceMatrix$mz_location,
+  n_metapeaks <- ncol(res$processed$AllMetapeaks$AllMetapeaksIntensity)
+  mz_range <- range(res$processed$CorrespondenceMatrix$mz_location,
                      na.rm = TRUE)
 
   output$summary <- shiny::renderUI(
@@ -244,6 +256,7 @@ mod_importServer <- function(id) {
         class = "mb-0 ps-3",
         shiny::tags$li(paste0(n_pixels, " pixels")),
         shiny::tags$li(paste0(n_markers, " markers")),
+        shiny::tags$li(paste0(n_metapeaks, " total metapeaks")),
         shiny::tags$li(sprintf("m/z %.1f \u2013 %.1f", mz_range[1], mz_range[2]))
       )
     )

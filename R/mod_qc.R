@@ -20,11 +20,11 @@ mod_qcUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::tabsetPanel(
     shiny::tabPanel("Intensity Distribution", shiny::plotOutput(ns("intensity_dist"))),
-    shiny::tabPanel("Mean-Variance",          shiny::plotOutput(ns("mean_var"))),
-    shiny::tabPanel("Geary's C",              shiny::plotOutput(ns("gearys_c"))),
-    shiny::tabPanel("SNR",                    shiny::plotOutput(ns("snr"))),
-    shiny::tabPanel("QC Overview",            shiny::plotOutput(ns("qc_overview"))),
-    shiny::tabPanel("TIC Spatial",            shiny::plotOutput(ns("tic_spatial")))
+    shiny::tabPanel("Mean-Variance", shiny::plotOutput(ns("mean_var"))),
+    shiny::tabPanel("Geary's C", shiny::plotOutput(ns("gearys_c"))),
+    shiny::tabPanel("SNR", shiny::plotOutput(ns("snr"))),
+    shiny::tabPanel("QC Overview", shiny::plotOutput(ns("qc_overview"))),
+    shiny::tabPanel("TIC Spatial", shiny::plotOutput(ns("tic_spatial")))
   )
 }
 

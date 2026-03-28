@@ -60,7 +60,7 @@ runShinyTAG <- function(...) {
 # ── Internal Server ───────────────────────────────────────────────────────────
 
 .shinytag_server <- function(input, output, session) {
-  data    <- mod_importServer("import")
+  data <- mod_importServer("import")
   channel <- mod_spectraServer("spectra", data)
   mod_imageServer("image", data, channel)
   mod_qcServer("qc", data)

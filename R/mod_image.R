@@ -66,9 +66,9 @@ mod_imageServer <- function(id, data, clicked_channel) {
     # Populate channel dropdown when data loads
     shiny::observeEvent(data(), {
       d <- data()$processed
-      targeted   <- colnames(d$IntensityDF)
-      all_int    <- as.data.frame(d$AllMetapeaks$AllMetapeaksIntensity)
-      all_corr   <- d$AllMetapeaks$AllMetapeaksCorrespondence
+      targeted <- colnames(d$IntensityDF)
+      all_int <- as.data.frame(d$AllMetapeaks$AllMetapeaksIntensity)
+      all_corr <- d$AllMetapeaks$AllMetapeaksCorrespondence
       untargeted <- colnames(all_int)[is.na(all_corr$marker)]
 
       choices <- list(Targeted = targeted, Untargeted = untargeted)
@@ -84,7 +84,7 @@ mod_imageServer <- function(id, data, clicked_channel) {
     # Render image from whichever channel the dropdown shows
     output$image <- shiny::renderPlot({
       shiny::req(data(), input$channel)
-      d        <- data()$processed
+      d <- data()$processed
       targeted <- colnames(d$IntensityDF)
 
       if (input$channel %in% targeted) {

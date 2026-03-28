@@ -57,9 +57,9 @@ mod_spectraServer <- function(id, data) {
       shiny::req(data())
       d <- data()
       p <- gutenTAG::plotMetapeaks(
-        x           = d$processed,
-        metapeaks   = d$metapeaks,
-        panel       = d$panel,
+        x = d$processed,
+        metapeaks = d$metapeaks,
+        panel = d$panel,
         interactive = TRUE
       )
       # Attach click handler to the outer plotly div. Computes the m/z from
@@ -91,16 +91,16 @@ mod_spectraServer <- function(id, data) {
       shiny::req(data())
 
       clicked_mz <- input$clicked_mz$x
-      d        <- data()
-      limits   <- d$metapeaks$metapeaks$limits
+      d <- data()
+      limits <- d$metapeaks$metapeaks$limits
       peak_max <- d$metapeaks$metapeaks$max
 
       # only act if click falls inside a metapeak boundary
       in_range <- clicked_mz >= limits[, 1] & clicked_mz <= limits[, 2]
-      hit_idx  <- which(in_range)
+      hit_idx <- which(in_range)
       if (length(hit_idx) == 0) return()
 
-      hit_mz   <- peak_max[hit_idx[1]]
+      hit_mz <- peak_max[hit_idx[1]]
       all_corr <- d$processed$AllMetapeaks$AllMetapeaksCorrespondence
       match_row <- which(all_corr$mz_location == hit_mz)
 
