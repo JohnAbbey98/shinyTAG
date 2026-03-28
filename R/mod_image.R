@@ -28,7 +28,7 @@ mod_imageUI <- function(id) {
         selected = "viridis"
       ))
     ),
-    shiny::plotOutput(ns("image"), height = "420px")
+    shiny::plotOutput(ns("image"), height = "350px")
   )
 }
 

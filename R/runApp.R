@@ -27,21 +27,27 @@ runShinyTAG <- function(...) {
     title = "shinyTAG",
     theme = bslib::bs_theme(version = 5, bootswatch = "flatly"),
     shiny::fluidRow(
-      shiny::column(3,
+      shiny::column(2,
         bslib::card(
           bslib::card_header("Data Import"),
           mod_importUI("import")
-        ),
+        )
+      ),
+      shiny::column(5,
+        bslib::card(
+          bslib::card_header("Ion Image"),
+          mod_imageUI("image")
+        )
+      ),
+      shiny::column(5,
         bslib::card(
           bslib::card_header("Quality Control"),
           mod_qcUI("qc")
         )
-      ),
-      shiny::column(9,
-        bslib::card(
-          bslib::card_header("Ion Image"),
-          mod_imageUI("image")
-        ),
+      )
+    ),
+    shiny::fluidRow(
+      shiny::column(12,
         bslib::card(
           bslib::card_header("Spectrum"),
           mod_spectraUI("spectra")
