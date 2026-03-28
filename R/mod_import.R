@@ -1,10 +1,11 @@
 #' Data Import Module UI
 #'
 #' @description
-#'   Sidebar UI for loading a MALDI-MSI dataset and a panel \code{.csv} file,
-#'   then running the full gutenTAG processing pipeline. Paths are entered as
-#'   text so that Cardinal reads directly from disk. Accordion panels expose
-#'   tunable parameters for each pipeline step.
+#'   Sidebar UI for loading MALDI-MSI data via two modes: (1) raw
+#'   \code{.imzML} + panel \code{.csv} with full pipeline processing, or
+#'   (2) a pre-processed \code{.Rdata} file that skips the pipeline entirely.
+#'   Accordion panels expose tunable parameters for each pipeline step.
+#'   A dataset summary is shown after successful loading.
 #'
 #' @param id Module namespace ID.
 #'
@@ -20,49 +21,66 @@
 mod_importUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
-    shiny::textInput(ns("imzml"), "Path to .imzML file",
-                     placeholder = "/path/to/data.imzML"),
-    shiny::textInput(ns("panel"), "Path to panel .csv",
-                     placeholder = "/path/to/panel.csv"),
+    shiny::radioButtons(ns("mode"), NULL,
+                        choices  = c("Raw (.imzML)" = "raw",
+                                     "Processed (.Rdata)" = "rdata"),
+                        selected = "raw", inline = TRUE),
 
-    bslib::accordion(
-      open = FALSE,
-
-      bslib::accordion_panel(
-        "Peak Detection",
-        shiny::numericInput(ns("pd_snr"), "SNR", value = 3, min = 0, step = 0.5),
-        shiny::numericInput(ns("pd_win"), "Window size", value = 50, min = 1, step = 1)
-      ),
-
-      bslib::accordion_panel(
-        "Generate Metapeaks",
-        shiny::numericInput(ns("gm_threshold"), "Threshold", value = 0.01,
-                            min = 0, max = 1, step = 0.005),
-        shiny::numericInput(ns("gm_smooth"), "Hist smooth factor",
-                            value = 1, min = 0.1, step = 0.1),
-        shiny::numericInput(ns("gm_sparsity"), "Sparsity", value = 3,
-                            min = 0, step = 0.5),
-        shiny::numericInput(ns("gm_fixed_limits"), "Fixed limits (empty = auto)",
-                            value = NA, min = 0, step = 0.1)
-      ),
-
-      bslib::accordion_panel(
-        "Assign Metapeaks",
-        shiny::numericInput(ns("am_mz_threshold"), "m/z threshold", value = 1,
-                            min = 0, step = 0.1)
+    # ── Raw mode inputs ───────────────────────────────────────────────────
+    shiny::conditionalPanel(
+      sprintf("input['%s'] === 'raw'", ns("mode")),
+      shiny::textInput(ns("imzml"), "Path to .imzML file",
+                       placeholder = "/path/to/data.imzML"),
+      shiny::textInput(ns("panel"), "Path to panel .csv",
+                       placeholder = "/path/to/panel.csv"),
+      bslib::accordion(
+        open = FALSE,
+        bslib::accordion_panel(
+          "Peak Detection",
+          shiny::numericInput(ns("pd_snr"), "SNR", value = 3,
+                              min = 0, step = 0.5),
+          shiny::numericInput(ns("pd_win"), "Window size", value = 50,
+                              min = 1, step = 1)
+        ),
+        bslib::accordion_panel(
+          "Generate Metapeaks",
+          shiny::numericInput(ns("gm_threshold"), "Threshold", value = 0.01,
+                              min = 0, max = 1, step = 0.005),
+          shiny::numericInput(ns("gm_smooth"), "Hist smooth factor",
+                              value = 1, min = 0.1, step = 0.1),
+          shiny::numericInput(ns("gm_sparsity"), "Sparsity", value = 3,
+                              min = 0, step = 0.5),
+          shiny::numericInput(ns("gm_fixed_limits"),
+                              "Fixed limits (empty = auto)",
+                              value = NA, min = 0, step = 0.1)
+        ),
+        bslib::accordion_panel(
+          "Assign Metapeaks",
+          shiny::numericInput(ns("am_mz_threshold"), "m/z threshold",
+                              value = 1, min = 0, step = 0.1)
+        )
       )
     ),
 
+    # ── Rdata mode input ──────────────────────────────────────────────────
+    shiny::conditionalPanel(
+      sprintf("input['%s'] === 'rdata'", ns("mode")),
+      shiny::textInput(ns("rdata"), "Path to .Rdata file",
+                       placeholder = "/path/to/processed.Rdata")
+    ),
+
     shiny::actionButton(ns("run"), "Process", class = "btn-primary w-100 mt-2"),
-    shiny::uiOutput(ns("status"))
+    shiny::uiOutput(ns("status")),
+    shiny::uiOutput(ns("summary"))
   )
 }
 
 #' Data Import Module Server
 #'
 #' @description
-#'   Runs the gutenTAG processing pipeline using the parameters set in the UI
-#'   and returns a reactive list of results.
+#'   Loads data in raw or pre-processed mode, with a progress bar tracking
+#'   each pipeline step. Returns a reactive list of results and renders a
+#'   dataset summary after loading.
 #'
 #' @param id Module namespace ID.
 #'
@@ -86,69 +104,148 @@ mod_importServer <- function(id) {
     results <- shiny::reactiveVal(NULL)
 
     shiny::observeEvent(input$run, {
-      shiny::req(input$imzml, input$panel)
 
-      imzml_path <- normalizePath(input$imzml, mustWork = FALSE)
-      panel_path <- normalizePath(input$panel, mustWork = FALSE)
+      output$status  <- shiny::renderUI(NULL)
+      output$summary <- shiny::renderUI(NULL)
 
-      if (!file.exists(imzml_path)) {
-        output$status <- shiny::renderUI(
-          shiny::tags$p("imzML file not found.", class = "text-danger small mt-2")
-        )
-        return()
+      if (input$mode == "rdata") {
+        .load_rdata(input, output, results)
+      } else {
+        .load_raw(input, output, session, results)
       }
-      if (!file.exists(panel_path)) {
-        output$status <- shiny::renderUI(
-          shiny::tags$p("Panel CSV not found.", class = "text-danger small mt-2")
-        )
-        return()
-      }
-
-      output$status <- shiny::renderUI(
-        shiny::tags$p("Processing \u2014 please wait...",
-                      class = "text-warning small mt-2")
-      )
-
-      # resolve fixed.limits: NA → NULL
-      fixed_lim <- input$gm_fixed_limits
-      if (is.na(fixed_lim)) fixed_lim <- NULL
-
-      tryCatch({
-        panel <- gutenTAG::readPanel(panel_path)
-        raw   <- Cardinal::readMSIData(imzml_path)
-        pre   <- gutenTAG::preProcess(raw)
-
-        peaks <- gutenTAG::peakDetection(pre,
-                   snr = input$pd_snr,
-                   win = input$pd_win)
-
-        meta  <- gutenTAG::generateMetapeaks(peaks,
-                   threshold         = input$gm_threshold,
-                   hist_smooth_factor = input$gm_smooth,
-                   sparsity          = input$gm_sparsity,
-                   fixed.limits      = fixed_lim)
-
-        proc  <- gutenTAG::assignMetapeaks(meta, pre, panel,
-                   mz_threshold = input$am_mz_threshold)
-
-        proc  <- gutenTAG::computeGearysC(proc, update_correspondence = TRUE)
-        proc  <- gutenTAG::computeSNR(proc, update_correspondence = TRUE)
-
-        results(list(processed = proc, metapeaks = meta, panel = panel))
-
-        output$status <- shiny::renderUI(
-          shiny::tags$p("Ready.", class = "text-success small mt-2")
-        )
-      }, error = function(e) {
-        output$status <- shiny::renderUI(
-          shiny::tags$p(
-            paste("Error:", conditionMessage(e)),
-            class = "text-danger small mt-2"
-          )
-        )
-      })
     })
 
     shiny::reactive(results())
   })
+}
+
+# ── Internal: load pre-processed .Rdata ───────────────────────────────────────
+
+.load_rdata <- function(input, output, results) {
+  shiny::req(input$rdata)
+  rdata_path <- normalizePath(input$rdata, mustWork = FALSE)
+
+  if (!file.exists(rdata_path)) {
+    output$status <- shiny::renderUI(
+      shiny::tags$p("Rdata file not found.", class = "text-danger small mt-2")
+    )
+    return()
+  }
+
+  tryCatch({
+    env <- new.env(parent = emptyenv())
+    load(rdata_path, envir = env)
+    obj <- ls(env)
+
+    # expect a single list named 'results' with processed/metapeaks/panel
+    res <- env[[obj[1]]]
+    stopifnot(all(c("processed", "metapeaks", "panel") %in% names(res)))
+
+    results(res)
+    output$status <- shiny::renderUI(
+      shiny::tags$p("Loaded.", class = "text-success small mt-2")
+    )
+    .render_summary(output, res)
+  }, error = function(e) {
+    output$status <- shiny::renderUI(
+      shiny::tags$p(paste("Error:", conditionMessage(e)),
+                    class = "text-danger small mt-2")
+    )
+  })
+}
+
+# ── Internal: run full pipeline on raw data ───────────────────────────────────
+
+.load_raw <- function(input, output, session, results) {
+  shiny::req(input$imzml, input$panel)
+
+  imzml_path <- normalizePath(input$imzml, mustWork = FALSE)
+  panel_path <- normalizePath(input$panel, mustWork = FALSE)
+
+  if (!file.exists(imzml_path)) {
+    output$status <- shiny::renderUI(
+      shiny::tags$p("imzML file not found.", class = "text-danger small mt-2")
+    )
+    return()
+  }
+  if (!file.exists(panel_path)) {
+    output$status <- shiny::renderUI(
+      shiny::tags$p("Panel CSV not found.", class = "text-danger small mt-2")
+    )
+    return()
+  }
+
+  fixed_lim <- input$gm_fixed_limits
+  if (is.na(fixed_lim)) fixed_lim <- NULL
+
+  n_steps <- 7L
+
+  tryCatch({
+    shiny::withProgress(message = "Processing", value = 0, {
+
+      shiny::incProgress(1 / n_steps, detail = "Reading panel")
+      panel <- gutenTAG::readPanel(panel_path)
+
+      shiny::incProgress(1 / n_steps, detail = "Reading imzML")
+      raw <- Cardinal::readMSIData(imzml_path)
+
+      shiny::incProgress(1 / n_steps, detail = "Pre-processing")
+      pre <- gutenTAG::preProcess(raw)
+
+      shiny::incProgress(1 / n_steps, detail = "Peak detection")
+      peaks <- gutenTAG::peakDetection(pre,
+                 snr = input$pd_snr, win = input$pd_win)
+
+      shiny::incProgress(1 / n_steps, detail = "Generating metapeaks")
+      meta <- gutenTAG::generateMetapeaks(peaks,
+                threshold          = input$gm_threshold,
+                hist_smooth_factor = input$gm_smooth,
+                sparsity           = input$gm_sparsity,
+                fixed.limits       = fixed_lim)
+
+      shiny::incProgress(1 / n_steps, detail = "Assigning metapeaks")
+      proc <- gutenTAG::assignMetapeaks(meta, pre, panel,
+                mz_threshold = input$am_mz_threshold)
+
+      shiny::incProgress(1 / n_steps, detail = "Computing QC stats")
+      proc <- gutenTAG::computeGearysC(proc, update_correspondence = TRUE)
+      proc <- gutenTAG::computeSNR(proc, update_correspondence = TRUE)
+    })
+
+    res <- list(processed = proc, metapeaks = meta, panel = panel)
+    results(res)
+
+    output$status <- shiny::renderUI(
+      shiny::tags$p("Ready.", class = "text-success small mt-2")
+    )
+    .render_summary(output, res)
+
+  }, error = function(e) {
+    output$status <- shiny::renderUI(
+      shiny::tags$p(paste("Error:", conditionMessage(e)),
+                    class = "text-danger small mt-2")
+    )
+  })
+}
+
+# ── Internal: dataset summary ─────────────────────────────────────────────────
+
+.render_summary <- function(output, res) {
+  n_pixels  <- nrow(res$processed$IntensityDF)
+  n_markers <- ncol(res$processed$IntensityDF)
+  mz_range  <- range(res$processed$CorrespondenceMatrix$mz_location,
+                     na.rm = TRUE)
+
+  output$summary <- shiny::renderUI(
+    shiny::tags$div(
+      class = "small mt-2",
+      shiny::tags$strong("Dataset"),
+      shiny::tags$ul(
+        class = "mb-0 ps-3",
+        shiny::tags$li(paste0(n_pixels, " pixels")),
+        shiny::tags$li(paste0(n_markers, " markers")),
+        shiny::tags$li(sprintf("m/z %.1f \u2013 %.1f", mz_range[1], mz_range[2]))
+      )
+    )
+  )
 }

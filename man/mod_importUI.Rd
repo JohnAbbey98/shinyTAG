@@ -13,10 +13,11 @@ mod_importUI(id)
 A \code{\link[shiny]{tagList}} of UI elements.
 }
 \description{
-Sidebar UI for loading a MALDI-MSI dataset and a panel \code{.csv} file,
-  then running the full gutenTAG processing pipeline. Paths are entered as
-  text so that Cardinal reads directly from disk. Accordion panels expose
-  tunable parameters for each pipeline step.
+Sidebar UI for loading MALDI-MSI data via two modes: (1) raw
+  \code{.imzML} + panel \code{.csv} with full pipeline processing, or
+  (2) a pre-processed \code{.Rdata} file that skips the pipeline entirely.
+  Accordion panels expose tunable parameters for each pipeline step.
+  A dataset summary is shown after successful loading.
 }
 \examples{
 if (interactive()) {

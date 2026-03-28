@@ -15,8 +15,9 @@ A \code{\link[shiny]{reactive}} returning a named list with elements
   before data are loaded.
 }
 \description{
-Runs the gutenTAG processing pipeline using the parameters set in the UI
-  and returns a reactive list of results.
+Loads data in raw or pre-processed mode, with a progress bar tracking
+  each pipeline step. Returns a reactive list of results and renders a
+  dataset summary after loading.
 }
 \examples{
 if (interactive()) {
