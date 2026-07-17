@@ -93,3 +93,27 @@ test_that("mod_imageServer accepts NULL data without error", {
     expect_true(TRUE)
   })
 })
+
+test_that("mod_previewUI returns a tagList", {
+  ui <- mod_previewUI("test")
+  expect_s3_class(ui, "shiny.tag.list")
+})
+
+test_that("mod_previewUI contains all six pipeline steps", {
+  ui <- mod_previewUI("test")
+  html <- as.character(ui)
+  expect_true(grepl("Window", html))
+  expect_true(grepl("SNR", html))
+  expect_true(grepl("Smoothing", html))
+  expect_true(grepl("Sparsity", html))
+  expect_true(grepl("Limits", html))
+  expect_true(grepl("Association", html))
+  expect_true(grepl("Accept parameters", html))
+})
+
+test_that("mod_importUI contains the app mode toggle", {
+  ui <- mod_importUI("test")
+  html <- as.character(ui)
+  expect_true(grepl("processing", html))
+  expect_true(grepl("preview", html))
+})

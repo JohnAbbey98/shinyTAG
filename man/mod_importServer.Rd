@@ -4,10 +4,15 @@
 \alias{mod_importServer}
 \title{Data Import Module Server}
 \usage{
-mod_importServer(id)
+mod_importServer(id, preview_params = shiny::reactive(NULL))
 }
 \arguments{
 \item{id}{Module namespace ID.}
+
+\item{preview_params}{A \code{\link[shiny]{reactive}} returning a named list
+of parameter values accepted from Preview Mode (optional). When it emits
+a non-\code{NULL} value, the corresponding Processing Mode inputs are
+updated and the app switches back to Processing Mode.}
 }
 \value{
 A \code{\link[shiny]{reactive}} returning a named list with elements

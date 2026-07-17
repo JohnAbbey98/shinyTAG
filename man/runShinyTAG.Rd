@@ -14,9 +14,10 @@ A \code{shiny.appobj}; typically run for its side-effect.
 }
 \description{
 Starts the shinyTAG Shiny web application for interactive exploration of
-  gutenTAG MALDI-MSI results. The interface provides a data import sidebar,
-  a single-channel ion image viewer, an interactive metapeak spectrum panel,
-  and a tabbed QC dashboard.
+  gutenTAG MALDI-MSI results. The interface offers two modes: Processing
+  Mode (full pipeline run with ion image, spectrum, and QC panels) and
+  Preview Mode (fast, downsampled parameter tuning across the six pipeline
+  steps). The mode toggle lives at the top of the Data Import panel.
 }
 \examples{
 if (interactive()) {

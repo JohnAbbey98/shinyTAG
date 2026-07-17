@@ -2,9 +2,10 @@
 #'
 #' @description
 #'   Starts the shinyTAG Shiny web application for interactive exploration of
-#'   gutenTAG MALDI-MSI results. The interface provides a data import sidebar,
-#'   a single-channel ion image viewer, an interactive metapeak spectrum panel,
-#'   and a tabbed QC dashboard.
+#'   gutenTAG MALDI-MSI results. The interface offers two modes: Processing
+#'   Mode (full pipeline run with ion image, spectrum, and QC panels) and
+#'   Preview Mode (fast, downsampled parameter tuning across the six pipeline
+#'   steps). The mode toggle lives at the top of the Data Import panel.
 #'
 #' @param ... Arguments passed to \code{\link[shiny]{shinyApp}}.
 #'
@@ -33,24 +34,38 @@ runShinyTAG <- function(...) {
           mod_importUI("import")
         )
       ),
-      shiny::column(5,
-        bslib::card(
-          bslib::card_header("Ion Image"),
-          mod_imageUI("image")
-        )
-      ),
-      shiny::column(5,
-        bslib::card(
-          bslib::card_header("Quality Control"),
-          mod_qcUI("qc")
-        )
-      )
-    ),
-    shiny::fluidRow(
-      shiny::column(12,
-        bslib::card(
-          bslib::card_header("Spectrum"),
-          mod_spectraUI("spectra")
+      shiny::column(10,
+        shiny::conditionalPanel(
+          condition = "input['import-app_mode'] !== 'preview'",
+          shiny::fluidRow(
+            shiny::column(6,
+              bslib::card(
+                bslib::card_header("Ion Image"),
+                mod_imageUI("image")
+              )
+            ),
+            shiny::column(6,
+              bslib::card(
+                bslib::card_header("Quality Control"),
+                mod_qcUI("qc")
+              )
+            )
+          ),
+          shiny::fluidRow(
+            shiny::column(12,
+              bslib::card(
+                bslib::card_header("Spectrum"),
+                mod_spectraUI("spectra")
+              )
+            )
+          )
+        ),
+        shiny::conditionalPanel(
+          condition = "input['import-app_mode'] === 'preview'",
+          bslib::card(
+            bslib::card_header("Preview Mode \u2014 Parameter Exploration"),
+            mod_previewUI("preview")
+          )
         )
       )
     )
@@ -60,7 +75,8 @@ runShinyTAG <- function(...) {
 # ── Internal Server ───────────────────────────────────────────────────────────
 
 .shinytag_server <- function(input, output, session) {
-  data <- mod_importServer("import")
+  preview_accepted <- mod_previewServer("preview")
+  data <- mod_importServer("import", preview_params = preview_accepted)
   channel <- mod_spectraServer("spectra", data)
   mod_imageServer("image", data, channel)
   mod_qcServer("qc", data)

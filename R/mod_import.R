@@ -21,6 +21,11 @@
 mod_importUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::tagList(
+    shiny::radioButtons(ns("app_mode"), NULL,
+                        choices  = c("Processing" = "processing",
+                                     "Preview"    = "preview"),
+                        selected = "processing", inline = TRUE),
+    shiny::tags$hr(style = "margin: 6px 0;"),
     shiny::radioButtons(ns("mode"), NULL,
                         choices  = c("Raw (.imzML)" = "raw",
                                      "Processed (.Rdata)" = "rdata"),
@@ -85,6 +90,10 @@ mod_importUI <- function(id) {
 #'   dataset summary after loading.
 #'
 #' @param id Module namespace ID.
+#' @param preview_params A \code{\link[shiny]{reactive}} returning a named list
+#'   of parameter values accepted from Preview Mode (optional). When it emits
+#'   a non-\code{NULL} value, the corresponding Processing Mode inputs are
+#'   updated and the app switches back to Processing Mode.
 #'
 #' @return A \code{\link[shiny]{reactive}} returning a named list with elements
 #'   \code{processed}, \code{metapeaks}, and \code{panel}, or \code{NULL}
@@ -100,7 +109,7 @@ mod_importUI <- function(id) {
 #'   }
 #'   shiny::shinyApp(ui, server)
 #' }
-mod_importServer <- function(id) {
+mod_importServer <- function(id, preview_params = shiny::reactive(NULL)) {
   shiny::moduleServer(id, function(input, output, session) {
 
     results <- shiny::reactiveVal(NULL)
@@ -115,6 +124,18 @@ mod_importServer <- function(id) {
       } else {
         .load_raw(input, output, session, results)
       }
+    })
+
+    shiny::observeEvent(preview_params(), {
+      p <- preview_params(); shiny::req(p)
+      shiny::updateNumericInput(session, "pd_snr",          value = p$pd_snr)
+      shiny::updateNumericInput(session, "pd_win",          value = p$pd_win)
+      shiny::updateNumericInput(session, "gm_threshold",    value = p$gm_threshold)
+      shiny::updateNumericInput(session, "gm_smooth",       value = p$gm_smooth)
+      shiny::updateNumericInput(session, "gm_sparsity",     value = p$gm_sparsity)
+      shiny::updateNumericInput(session, "gm_fixed_limits", value = p$gm_fixed_limits)
+      shiny::updateNumericInput(session, "am_mz_threshold", value = p$am_mz_threshold)
+      shiny::updateRadioButtons(session, "app_mode", selected = "processing")
     })
 
     shiny::reactive(results())
